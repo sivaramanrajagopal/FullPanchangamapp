@@ -679,38 +679,145 @@ export default function PersonalNakshatraDashboard() {
   };
 
   // For iOS devices - UPDATED iOS CALENDAR FUNCTION (Solution 1)
+  // For iOS devices - IMPROVED iOS CALENDAR FUNCTION
   const addToAppleCalendar = (content) => {
-    // Create blob and object URL
-    const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-
-    // For iOS, we need to use a different approach
     if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-      // Create a temporary link element
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `personal-nakshatra-calendar-${new Date().toISOString().split("T")[0]}.ics`;
-      link.style.display = "none";
+      try {
+        // Method 1: Try the Web Share API first (iOS 12+)
+        if (navigator.share && navigator.canShare) {
+          const blob = new Blob([content], {
+            type: "text/calendar;charset=utf-8",
+          });
+          const file = new File(
+            [blob],
+            `personal-nakshatra-calendar-${new Date().toISOString().split("T")[0]}.ics`,
+            {
+              type: "text/calendar",
+            },
+          );
 
-      // Add to DOM, click, and remove
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+          // Check if we can share files
+          if (navigator.canShare({ files: [file] })) {
+            navigator
+              .share({
+                files: [file],
+                title: "Personal Nakshatra Calendar",
+                text: "Your personalized astrological calendar",
+              })
+              .then(() => {
+                setTimeout(() => {
+                  alert(
+                    "Calendar shared! Please select 'Add to Calendar' or 'Save to Files' and then open the file to add to your calendar.",
+                  );
+                }, 500);
+              })
+              .catch((error) => {
+                console.log("Share failed, trying alternative method");
+                useDataUriMethod(content);
+              });
+            return;
+          }
+        }
 
-      // Clean up the URL
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-
-      // Show instructions to user
-      setTimeout(() => {
-        alert(
-          "Calendar file downloaded! Please check your Downloads folder and tap the file to add to your calendar.",
-        );
-      }, 500);
+        // Method 2: Data URI approach for older iOS or when share fails
+        useDataUriMethod(content);
+      } catch (error) {
+        console.error("iOS calendar export error:", error);
+        // Method 3: Fall back to individual event creation
+        useCalendarUrlMethod();
+      }
     } else {
       // Fallback for other browsers
+      const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
       window.open(url);
       setTimeout(() => URL.revokeObjectURL(url), 100);
     }
+  };
+
+  // Helper function for data URI method
+  const useDataUriMethod = (content) => {
+    // Create data URI with proper MIME type
+    const dataUri = `data:text/calendar;charset=utf-8,${encodeURIComponent(content)}`;
+
+    // Try opening in a new window first
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(`
+        <html>
+          <head><title>Calendar Export</title></head>
+          <body>
+            <h2>Calendar Export</h2>
+            <p>Tap the link below to add events to your calendar:</p>
+            <a href="${dataUri}" download="personal-nakshatra-calendar.ics" style="
+              display: inline-block;
+              padding: 12px 20px;
+              background: #007AFF;
+              color: white;
+              text-decoration: none;
+              border-radius: 8px;
+              font-size: 16px;
+            ">Download Calendar File</a>
+            <br><br>
+            <p><small>After downloading, tap the file to add events to your calendar app.</small></p>
+          </body>
+        </html>
+      `);
+      newWindow.document.close();
+    } else {
+      // Fallback: Direct data URI
+      window.location.href = dataUri;
+    }
+
+    // Show improved instructions
+    setTimeout(() => {
+      alert(`Calendar export initiated!
+
+  iOS Instructions:
+  1. Tap the "Download Calendar File" link
+  2. Look for download notification in Safari
+  3. Tap the downloaded .ics file
+  4. Choose "Add All" to add to calendar
+
+  Alternative: Use individual day buttons (📅) to add events one by one.`);
+    }, 2000);
+  };
+
+  // Helper function for calendar URL method (fallback)
+  const useCalendarUrlMethod = () => {
+    if (favorableDays.length === 0 && chandrashtamaDays.length === 0) return;
+
+    const firstEvent = favorableDays[0] || chandrashtamaDays[0];
+    const dateObj = new Date(firstEvent.date);
+
+    // Format for iOS calendar URL
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    const formattedDate = `${year}${month}${day}`;
+
+    const title = favorableDays[0]
+      ? `Favorable Day (Score: ${favorableDays[0].score.toFixed(1)})`
+      : `Chandrashtama Day - Caution`;
+
+    const notes = favorableDays[0]
+      ? `Favorable day for ${birthNakshatra}. Score: ${favorableDays[0].score.toFixed(1)}/10`
+      : `Chandrashtama day for ${birthNakshatra}. Avoid important activities.`;
+
+    // iOS calendar URL scheme
+    const calendarUrl = `calshow:?title=${encodeURIComponent(title)}&notes=${encodeURIComponent(notes)}&startdate=${formattedDate}&enddate=${formattedDate}`;
+
+    window.location.href = calendarUrl;
+
+    setTimeout(() => {
+      const totalEvents = favorableDays.length + chandrashtamaDays.length;
+      const message =
+        totalEvents > 1
+          ? `Added first event. You have ${totalEvents} total events. Use individual 📅 buttons for more events.`
+          : `Event added to calendar!`;
+
+      alert(message);
+    }, 2000);
   };
 
   // For Android devices
