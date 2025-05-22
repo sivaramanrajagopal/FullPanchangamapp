@@ -212,7 +212,7 @@ export default function PersonalNakshatraDashboard() {
       // Fetch personalized data
       fetchPersonalizedData();
     }
-  }, [birthNakshatra, selectedPeriod]);
+  }, [birthNakshatra, selectedPeriod, fetchPersonalizedData]);
 
   // Format dates for database query
   const formatDateForDb = (date) => {
@@ -522,9 +522,10 @@ export default function PersonalNakshatraDashboard() {
 
     if (day.personalScoreData?.recommendations?.activities?.favorable?.en) {
       description += "Favorable Activities:\n";
-      const favorableActivities = day.personalScoreData.recommendations.activities.favorable.en;
+      const favorableActivities =
+        day.personalScoreData.recommendations.activities.favorable.en;
       if (Array.isArray(favorableActivities)) {
-        favorableActivities.forEach(activity => {
+        favorableActivities.forEach((activity) => {
           description += `• ${activity}\n`;
         });
       } else {
@@ -535,9 +536,10 @@ export default function PersonalNakshatraDashboard() {
 
     if (day.personalScoreData?.recommendations?.activities?.unfavorable?.en) {
       description += "Activities to Avoid:\n";
-      const unfavorableActivities = day.personalScoreData.recommendations.activities.unfavorable.en;
+      const unfavorableActivities =
+        day.personalScoreData.recommendations.activities.unfavorable.en;
       if (Array.isArray(unfavorableActivities)) {
-        unfavorableActivities.forEach(activity => {
+        unfavorableActivities.forEach((activity) => {
           description += `• ${activity}\n`;
         });
       } else {
@@ -559,9 +561,10 @@ export default function PersonalNakshatraDashboard() {
       "BEGIN:VALARM",
       "ACTION:DISPLAY",
       "DESCRIPTION:Reminder: This is a favorable day for you!",
-      "TRIGGER;VALUE=DATE-TIME:" + formatICSDate(new Date(dateObj.setHours(8, 0, 0)), true),
+      "TRIGGER;VALUE=DATE-TIME:" +
+        formatICSDate(new Date(dateObj.setHours(8, 0, 0)), true),
       "END:VALARM",
-      "END:VEVENT"
+      "END:VEVENT",
     ].join("\r\n");
 
     return icsEvent;
@@ -611,9 +614,10 @@ export default function PersonalNakshatraDashboard() {
       "BEGIN:VALARM",
       "ACTION:DISPLAY",
       "DESCRIPTION:Caution: This is a Chandrashtama day for you!",
-      "TRIGGER;VALUE=DATE-TIME:" + formatICSDate(new Date(dateObj.setHours(8, 0, 0)), true),
+      "TRIGGER;VALUE=DATE-TIME:" +
+        formatICSDate(new Date(dateObj.setHours(8, 0, 0)), true),
       "END:VALARM",
-      "END:VEVENT"
+      "END:VEVENT",
     ].join("\r\n");
 
     return icsEvent;
@@ -622,23 +626,24 @@ export default function PersonalNakshatraDashboard() {
   // Create iCalendar file content
   const createICSFile = (favorableDays, chandrashtamaDays) => {
     // File header
-    let fileContent = [
-      "BEGIN:VCALENDAR",
-      "VERSION:2.0",
-      "PRODID:-//PersonalNakshatraDashboard//EN",
-      "CALSCALE:GREGORIAN",
-      "METHOD:PUBLISH",
-      `X-WR-CALNAME:Personal Nakshatra Calendar for ${birthNakshatra}`,
-      "X-WR-TIMEZONE:UTC"
-    ].join("\r\n") + "\r\n";
+    let fileContent =
+      [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//PersonalNakshatraDashboard//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        `X-WR-CALNAME:Personal Nakshatra Calendar for ${birthNakshatra}`,
+        "X-WR-TIMEZONE:UTC",
+      ].join("\r\n") + "\r\n";
 
     // Add favorable day events
-    favorableDays.forEach(day => {
+    favorableDays.forEach((day) => {
       fileContent += createFavorableDayEvent(day) + "\r\n";
     });
 
     // Add Chandrashtama day events
-    chandrashtamaDays.forEach(day => {
+    chandrashtamaDays.forEach((day) => {
       fileContent += createChandrashtamaEvent(day) + "\r\n";
     });
 
@@ -673,11 +678,39 @@ export default function PersonalNakshatraDashboard() {
     }
   };
 
-  // For iOS devices - use webcal protocol
+  // For iOS devices - UPDATED iOS CALENDAR FUNCTION (Solution 1)
   const addToAppleCalendar = (content) => {
-    const base64Content = btoa(unescape(encodeURIComponent(content)));
-    const dataUri = `data:text/calendar;charset=utf-8;base64,${base64Content}`;
-    window.open(dataUri);
+    // Create blob and object URL
+    const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    // For iOS, we need to use a different approach
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+      // Create a temporary link element
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `personal-nakshatra-calendar-${new Date().toISOString().split("T")[0]}.ics`;
+      link.style.display = "none";
+
+      // Add to DOM, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the URL
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+
+      // Show instructions to user
+      setTimeout(() => {
+        alert(
+          "Calendar file downloaded! Please check your Downloads folder and tap the file to add to your calendar.",
+        );
+      }, 500);
+    } else {
+      // Fallback for other browsers
+      window.open(url);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
   };
 
   // For Android devices
@@ -690,21 +723,25 @@ export default function PersonalNakshatraDashboard() {
     const dateObj = new Date(event.date);
 
     // Format date for Google Calendar URL: YYYYMMDD
-    const formattedDate = dateObj.toISOString().split('T')[0].replace(/-/g, '');
+    const formattedDate = dateObj.toISOString().split("T")[0].replace(/-/g, "");
 
     // Create title and details
     const title = encodeURIComponent(`Favorable Day for ${birthNakshatra}`);
-    const details = encodeURIComponent(`Personal Score: ${event.score.toFixed(1)}/10\nNakshatra: ${parseJsonField(event.nakshatra)}`);
+    const details = encodeURIComponent(
+      `Personal Score: ${event.score.toFixed(1)}/10\nNakshatra: ${parseJsonField(event.nakshatra)}`,
+    );
 
     // Create Google Calendar URL
     const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formattedDate}/${formattedDate}&details=${details}`;
 
     // Open the URL in a new tab
-    window.open(googleCalUrl, '_blank');
+    window.open(googleCalUrl, "_blank");
 
     // Show notification to user about adding more events
     if (events.length > 1 || chandrashtamaDays.length > 0) {
-      alert(`You have ${events.length} favorable days and ${chandrashtamaDays.length} Chandrashtama days. Only the first favorable day was added to your calendar. Please use the 'Export All to Calendar' option to add all days.`);
+      alert(
+        `You have ${events.length} favorable days and ${chandrashtamaDays.length} Chandrashtama days. Only the first favorable day was added to your calendar. Please use the 'Export All to Calendar' option to add all days.`,
+      );
     }
   };
 
@@ -715,7 +752,9 @@ export default function PersonalNakshatraDashboard() {
 
     try {
       if (favorableDays.length === 0 && chandrashtamaDays.length === 0) {
-        alert("No calendar events to export. Please wait for the data to load or try a different date range.");
+        alert(
+          "No calendar events to export. Please wait for the data to load or try a different date range.",
+        );
         setExportLoading(false);
         return;
       }
@@ -735,12 +774,14 @@ export default function PersonalNakshatraDashboard() {
           if (favorableDays.length > 0) {
             addToGoogleCalendar(favorableDays);
           } else if (chandrashtamaDays.length > 0) {
-            alert("On Android, we can only add one event at a time to Google Calendar. Please use the desktop version to download all events at once.");
+            alert(
+              "On Android, we can only add one event at a time to Google Calendar. Please use the desktop version to download all events at once.",
+            );
           }
         }
       } else {
         // Desktop - download the file
-        const filename = `personal-nakshatra-calendar-${birthNakshatra.toLowerCase().replace(/\s+/g, '-')}.ics`;
+        const filename = `personal-nakshatra-calendar-${birthNakshatra.toLowerCase().replace(/\s+/g, "-")}.ics`;
         downloadFile(icsContent, filename);
       }
 
@@ -752,11 +793,9 @@ export default function PersonalNakshatraDashboard() {
       setExportLoading(false);
 
       // Reset success message after 3 seconds
-      if (exportSuccess) {
-        setTimeout(() => {
-          setExportSuccess(false);
-        }, 3000);
-      }
+      setTimeout(() => {
+        setExportSuccess(false);
+      }, 3000);
     }
   };
 
@@ -766,9 +805,9 @@ export default function PersonalNakshatraDashboard() {
       // Create iCalendar content for single day
       let icsContent;
 
-      if (type === 'favorable') {
+      if (type === "favorable") {
         icsContent = createICSFile([day], []);
-      } else if (type === 'chandrashtama') {
+      } else if (type === "chandrashtama") {
         icsContent = createICSFile([], [day]);
       } else {
         throw new Error("Invalid event type");
@@ -783,22 +822,29 @@ export default function PersonalNakshatraDashboard() {
           addToAppleCalendar(icsContent);
         } else {
           // Use Google Calendar approach (Android)
-          if (type === 'favorable') {
+          if (type === "favorable") {
             addToGoogleCalendar([day]);
           } else {
             // For Chandrashtama days on Android
             const dateObj = new Date(day.date);
-            const formattedDate = dateObj.toISOString().split('T')[0].replace(/-/g, '');
-            const title = encodeURIComponent(`⚠️ Chandrashtama Day - ${birthNakshatra}`);
-            const details = encodeURIComponent(`Caution: This is a Chandrashtama day for your birth star.\nAffected Nakshatra: ${day.nakshatra}`);
+            const formattedDate = dateObj
+              .toISOString()
+              .split("T")[0]
+              .replace(/-/g, "");
+            const title = encodeURIComponent(
+              `⚠️ Chandrashtama Day - ${birthNakshatra}`,
+            );
+            const details = encodeURIComponent(
+              `Caution: This is a Chandrashtama day for your birth star.\nAffected Nakshatra: ${day.nakshatra}`,
+            );
             const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formattedDate}/${formattedDate}&details=${details}`;
-            window.open(googleCalUrl, '_blank');
+            window.open(googleCalUrl, "_blank");
           }
         }
       } else {
         // Desktop - download the file
-        const dateStr = new Date(day.date).toISOString().split('T')[0];
-        const eventType = type === 'favorable' ? 'favorable' : 'chandrashtama';
+        const dateStr = new Date(day.date).toISOString().split("T")[0];
+        const eventType = type === "favorable" ? "favorable" : "chandrashtama";
         const filename = `${eventType}-day-${dateStr}.ics`;
         downloadFile(icsContent, filename);
       }
@@ -882,26 +928,49 @@ export default function PersonalNakshatraDashboard() {
           )}
 
           {/* Add Export All to Calendar Button */}
-          {!loading && (favorableDays.length > 0 || chandrashtamaDays.length > 0) && (
-            <div className="export-all-container">
-              <button
-                className={`export-all-button ${exportLoading ? 'loading' : ''} ${exportSuccess ? 'success' : ''}`}
-                onClick={exportAllToCalendar}
-                disabled={exportLoading}
-              >
-                {exportLoading ? (
-                  <>Exporting<span className="loading-dots">...</span></>
-                ) : exportSuccess ? (
-                  <>Exported ✓</>
-                ) : (
-                  <>📅 Export All to Calendar</>
-                )}
-              </button>
-              <p className="export-info">
-                Export all favorable days and Chandrashtama days to your calendar
-              </p>
-            </div>
-          )}
+          {!loading &&
+            (favorableDays.length > 0 || chandrashtamaDays.length > 0) && (
+              <div className="export-all-container">
+                <button
+                  className={`export-all-button ${exportLoading ? "loading" : ""} ${exportSuccess ? "success" : ""}`}
+                  onClick={exportAllToCalendar}
+                  disabled={exportLoading}
+                >
+                  {exportLoading ? (
+                    <>
+                      Exporting<span className="loading-dots">...</span>
+                    </>
+                  ) : exportSuccess ? (
+                    <>Exported ✓</>
+                  ) : (
+                    <>📅 Export All to Calendar</>
+                  )}
+                </button>
+                <p className="export-info">
+                  Export all favorable days and Chandrashtama days to your
+                  calendar
+                </p>
+
+                {/* iOS Instructions */}
+                {isMobileDevice() &&
+                  /iPad|iPhone|iPod/.test(navigator.userAgent) && (
+                    <div className="ios-instructions">
+                      <p
+                        style={{
+                          fontSize: "14px",
+                          color: "#666",
+                          marginTop: "8px",
+                          textAlign: "center",
+                        }}
+                      >
+                        📱 iOS: After clicking, the calendar file will download.
+                        Tap the downloaded file in Safari's downloads to add to
+                        your calendar.
+                      </p>
+                    </div>
+                  )}
+              </div>
+            )}
 
           {loading ? (
             <div className="loading">Loading your personalized forecast...</div>
@@ -934,7 +1003,7 @@ export default function PersonalNakshatraDashboard() {
                             {/* Add Calendar button for favorable day */}
                             <button
                               className="day-calendar-button"
-                              onClick={() => addDayToCalendar(day, 'favorable')}
+                              onClick={() => addDayToCalendar(day, "favorable")}
                               title="Add this day to your calendar"
                             >
                               📅
@@ -1231,11 +1300,12 @@ export default function PersonalNakshatraDashboard() {
                           {day.nakshatra && (
                             <div className="day-nakshatra">
                               🌙 Chandrashtama: <strong>{day.nakshatra}</strong>
-
                               {/* Add Calendar button for chandrashtama day */}
                               <button
                                 className="day-calendar-button"
-                                onClick={() => addDayToCalendar(day, 'chandrashtama')}
+                                onClick={() =>
+                                  addDayToCalendar(day, "chandrashtama")
+                                }
                                 title="Add this day to your calendar"
                               >
                                 📅
@@ -1480,9 +1550,17 @@ export default function PersonalNakshatraDashboard() {
         }
 
         @keyframes loadingDots {
-          0%, 20% { content: '.'; }
-          40% { content: '..'; }
-          60%, 100% { content: '...'; }
+          0%,
+          20% {
+            content: ".";
+          }
+          40% {
+            content: "..";
+          }
+          60%,
+          100% {
+            content: "...";
+          }
         }
 
         .loading {
