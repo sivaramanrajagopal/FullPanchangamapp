@@ -40,7 +40,7 @@ export default function Home() {
     Hasta: "ஹஸ்தம்",
     Chitra: "சித்திரை",
     Swati: "சுவாதி",
-    Swathi: "ஸ்வாதி", // Added specific mapping for Swathi with alternative spelling
+    Swathi: "ஸ்வாதி",
     Vishakha: "விசாகம்",
     Anuradha: "அனுஷம்",
     Jyeshtha: "கேட்டை",
@@ -55,7 +55,7 @@ export default function Home() {
     Revati: "ரேவதி",
   };
 
-  // Reverse mapping for Tamil to English (helpful for detection)
+  // Reverse mapping for Tamil to English
   const nakshatraTamilToEnglish = {};
   Object.entries(nakshatraEnglishToTamil).forEach(([english, tamil]) => {
     nakshatraTamilToEnglish[tamil] = english;
@@ -63,7 +63,6 @@ export default function Home() {
 
   // Alternative spellings for each nakshatra
   const nakshatraAlternatives = {
-    // Primary Tamil : [Alternative spellings]
     அசுவினி: ["அஸ்வினி", "அச்வினி"],
     பரணி: ["பரநி"],
     கார்த்திகை: ["கிருத்திகை", "கிருத்திகா", "கார்திகை"],
@@ -72,7 +71,7 @@ export default function Home() {
     ஹஸ்தம்: ["அஸ்தம்", "ஹஸ்த"],
     சித்திரை: ["சித்ரா", "சித்ர"],
     சுவாதி: ["ஸ்வாதி", "ஸ்வாதீ"],
-    ஸ்வாதி: ["சுவாதி", "ஸ்வாதீ", "Swati", "Swathi"], // Added key for the alternative
+    ஸ்வாதி: ["சுவாதி", "ஸ்வாதீ", "Swati", "Swathi"],
     விசாகம்: ["விசாக", "விசாகா", "விஷாகம்"],
     கேட்டை: ["ஜ்யேஷ்டா", "ஜேஷ்டா", "ஜ்யேஷ்ட"],
     பூராடம்: ["பூர்வாஷாடா", "பூர்வாஷாட", "பூர்வ அஷாடா"],
@@ -81,7 +80,7 @@ export default function Home() {
     உத்திரட்டாதி: ["உத்தர பத்ரபதா", "உத்தரா பாத்ரபதா"],
   };
 
-  // Mapping for RS Nakshatra group - the nakshatras that should show warnings
+  // Mapping for RS Nakshatra group
   const rsNakshatraGroup = [
     "Bharani",
     "Krittika",
@@ -115,10 +114,27 @@ export default function Home() {
     "பூரட்டாதி",
   ];
 
-  // All alternative spellings for RS Nakshatras, flattened into one array
+  // All alternative spellings for RS Nakshatras
   const rsNakshatraAlternatives = rsNakshatraTamilNames
     .map((name) => nakshatraAlternatives[name] || [])
     .flat();
+
+  // Navigation functions
+  const goToPreviousDay = () => {
+    const prevDay = new Date(selectedDate);
+    prevDay.setDate(selectedDate.getDate() - 1);
+    setSelectedDate(prevDay);
+  };
+
+  const goToNextDay = () => {
+    const nextDay = new Date(selectedDate);
+    nextDay.setDate(selectedDate.getDate() + 1);
+    setSelectedDate(nextDay);
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date());
+  };
 
   // Function to format Tithi data from JSON string
   const formatTithiData = (tithiStr) => {
@@ -137,38 +153,43 @@ export default function Home() {
       }
 
       return (
-        <div className="tithi-container">
+        <div className="tithi-timeline">
           {tithiData.map((tithi, index) => {
-            // Format start and end times
             const startDate = new Date(tithi.start);
             const endDate = new Date(tithi.end);
-
-            // Check if this is the currently active tithi
             const now = new Date();
             const isActive = now >= startDate && now <= endDate;
 
             return (
               <div
                 key={index}
-                className={`tithi-item ${isActive ? "active-tithi" : ""}`}
+                className={`tithi-block ${isActive ? "current" : ""}`}
               >
-                <div className="tithi-name">
-                  <div className="tithi-name-content">
-                    <span className="tithi-main-name">{tithi.name}</span>
-                    <span className="tithi-paksha">({tithi.paksha})</span>
-                  </div>
-                  {isActive && <span className="active-badge">Current</span>}
+                <div className="tithi-indicator">
+                  <div
+                    className={`tithi-dot ${isActive ? "active" : ""}`}
+                  ></div>
+                  {isActive && <div className="pulse-ring"></div>}
                 </div>
-                <div className="tithi-time">
-                  {startDate.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}{" "}
-                  -{" "}
-                  {endDate.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                <div className="tithi-info">
+                  <div className="tithi-header">
+                    <span className="tithi-name">{tithi.name}</span>
+                    {isActive && <span className="current-badge">Live</span>}
+                  </div>
+                  <div className="tithi-details">
+                    <span className="paksha">{tithi.paksha}</span>
+                    <span className="timing">
+                      {startDate.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}{" "}
+                      -{" "}
+                      {endDate.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
                 </div>
               </div>
             );
@@ -215,49 +236,36 @@ export default function Home() {
 
       if (yogamError) throw yogamError;
 
-      // Extract nakshatra names from the data
       const mainNakshatra = data.main_nakshatra;
-
-      // Check if the nakshatra is in Tamil or English
       const isTamilNakshatra = /[\u0B80-\u0BFF]/.test(mainNakshatra);
 
-      // Get appropriate name equivalents
       let englishNakshatraName = "";
       let tamilNakshatraName = "";
 
       if (isTamilNakshatra) {
-        // It's in Tamil
         tamilNakshatraName = mainNakshatra;
         englishNakshatraName = nakshatraTamilToEnglish[mainNakshatra] || "";
       } else {
-        // It's in English
         englishNakshatraName = mainNakshatra;
         tamilNakshatraName = nakshatraEnglishToTamil[mainNakshatra] || "";
       }
 
-      // Determine if this is an RS Nakshatra
       let isRSNakshatra = false;
 
-      // Check all possible ways
       if (
-        // 1. Check against English list
         rsNakshatraGroup.includes(englishNakshatraName) ||
         rsNakshatraGroup.includes(mainNakshatra) ||
-        // 2. Check against Tamil list
         rsNakshatraTamilNames.includes(tamilNakshatraName) ||
         rsNakshatraTamilNames.includes(mainNakshatra) ||
-        // 3. Special case for Swati/Swathi
         mainNakshatra === "Swati" ||
         mainNakshatra === "Swathi" ||
         mainNakshatra === "ஸ்வாதி" ||
         mainNakshatra === "சுவாதி" ||
-        // 4. Check against alternative spellings
         rsNakshatraAlternatives.includes(mainNakshatra)
       ) {
         isRSNakshatra = true;
       }
 
-      // Set RS Nakshatra info if found
       if (isRSNakshatra) {
         setRsNakshatraInfo({
           is_rs_nakshatra: true,
@@ -275,13 +283,11 @@ export default function Home() {
         setRsNakshatraInfo(null);
       }
 
-      // Check moon phase from tithi
       let moonPhase = {
         is_valar_pirai: false,
         is_thei_pirai: false,
       };
 
-      // Parse tithi data to determine moon phase
       if (data.tithi) {
         let tithiData;
         if (typeof data.tithi === "string") {
@@ -295,12 +301,9 @@ export default function Home() {
         }
 
         if (Array.isArray(tithiData)) {
-          // Check for Shukla Paksha (growing moon)
           moonPhase.is_valar_pirai = tithiData.some(
             (t) => t.paksha === "சுக்ல பக்ஷ",
           );
-
-          // Check for Krishna Paksha (waning moon)
           moonPhase.is_thei_pirai = tithiData.some(
             (t) => t.paksha === "கிருஷ்ண பக்ஷ",
           );
@@ -336,35 +339,15 @@ export default function Home() {
 
   const getSpecialDay = (data) => {
     if (!data) return "Normal Day";
-    if (data.is_pournami) return "பௌர்ணமி (Full Moon Day)";
-    if (data.is_amavasai) return "அமாவாசை (New Moon Day)";
-    if (data.is_ekadashi) return "ஏகாதசி (Ekadashi)";
-    if (data.is_dwadashi) return "துவாதசி (Dwadashi)";
-    if (data.is_ashtami) return "அஷ்டமி (Ashtami)";
-    if (data.is_navami) return "நவமி (Navami)";
-    if (data.is_trayodashi) return "திரயோதசி (Trayodashi)";
-    if (data.is_sashti) return "சஷ்டி (Sashti)";
+    if (data.is_pournami) return "பௌர்ணமி";
+    if (data.is_amavasai) return "அமாவாசை";
+    if (data.is_ekadashi) return "ஏகாதசி";
+    if (data.is_dwadashi) return "துவாதசி";
+    if (data.is_ashtami) return "அஷ்டமி";
+    if (data.is_navami) return "நவமி";
+    if (data.is_trayodashi) return "திரயோதசி";
+    if (data.is_sashti) return "சஷ்டி";
     return "Normal Day";
-  };
-
-  // Component for moon phase indicator
-  const MoonPhaseIndicator = ({ isValarPirai, isTheiPirai }) => {
-    if (isValarPirai) {
-      return (
-        <div className="moon-phase valar-pirai">
-          <div className="moon-icon waxing-moon"></div>
-          <span className="moon-text">வளர்பிறை</span>
-        </div>
-      );
-    } else if (isTheiPirai) {
-      return (
-        <div className="moon-phase thei-pirai">
-          <div className="moon-icon waning-moon"></div>
-          <span className="moon-text">தேய்பிறை</span>
-        </div>
-      );
-    }
-    return null;
   };
 
   const speakContent = () => {
@@ -374,7 +357,6 @@ export default function Home() {
     }
     if (!panchangamData) return;
 
-    // Toggle voice playing state
     if (isVoicePlaying) {
       window.speechSynthesis.cancel();
       setIsVoicePlaying(false);
@@ -401,7 +383,6 @@ export default function Home() {
         `திதி: ${(panchangamData.tithi && getFirstItem(panchangamData.tithi)?.name) || ""}.`,
       ];
 
-      // Add moon phase info to speech
       if (panchangamData.is_valar_pirai) {
         chunks.push(`சந்திரன் நிலை: வளர்பிறை.`);
       } else if (panchangamData.is_thei_pirai) {
@@ -415,7 +396,6 @@ export default function Home() {
         `விசேஷ நாள்: ${getSpecialDay(panchangamData)}.`,
       );
 
-      // Add RS Nakshatra warning if applicable
       if (rsNakshatraInfo) {
         chunks.push(
           `கவனம்! இன்று ${rsNakshatraInfo.nakshatra_name_tamil || rsNakshatraInfo.nakshatra_name} தீதுரு நட்சத்திரம்.`,
@@ -442,10 +422,6 @@ export default function Home() {
             (v.lang === "hi-IN" || v.lang.startsWith("en")) &&
             v.name.toLowerCase().includes("female"),
         );
-      }
-
-      if (!tamilVoice) {
-        console.warn("Tamil voice not available. Using default voice.");
       }
 
       let chunkIndex = 0;
@@ -513,7 +489,6 @@ export default function Home() {
     return null;
   };
 
-  // Convert English nakshatra names to Tamil
   const convertChandrashtamaToTamil = (englishNames) => {
     if (!englishNames) return "N/A";
 
@@ -530,315 +505,306 @@ export default function Home() {
     return "N/A";
   };
 
-  // Function to render cosmic score with visual indicator
   const renderCosmicScore = (score) => {
-    if (!score) return <span>N/A</span>;
+    if (!score) return <span className="score-na">N/A</span>;
 
     const numericScore = parseFloat(score);
-    let scoreColor = "#f59e0b"; // Default amber
+    let scoreLevel = "average";
+    let scoreColor = "#f59e0b";
 
     if (numericScore >= 8) {
-      scoreColor = "#10b981"; // Green
+      scoreLevel = "excellent";
+      scoreColor = "#10b981";
     } else if (numericScore <= 4) {
-      scoreColor = "#ef4444"; // Red
+      scoreLevel = "poor";
+      scoreColor = "#ef4444";
     }
 
     return (
-      <div className="cosmic-score-display">
-        <div className="cosmic-score-number">{score}/10</div>
-        <div className="cosmic-score-bar">
-          <div
-            className="cosmic-score-fill"
-            style={{
-              width: `${numericScore * 10}%`,
-              backgroundColor: scoreColor,
-            }}
-          ></div>
+      <div className={`cosmic-score ${scoreLevel}`}>
+        <div className="score-circle">
+          <svg className="score-ring" width="120" height="120">
+            <circle
+              cx="60"
+              cy="60"
+              r="50"
+              stroke="#e5e7eb"
+              strokeWidth="8"
+              fill="none"
+            />
+            <circle
+              cx="60"
+              cy="60"
+              r="50"
+              stroke={scoreColor}
+              strokeWidth="8"
+              fill="none"
+              strokeLinecap="round"
+              strokeDasharray={`${numericScore * 31.4} 314`}
+              className="score-progress"
+            />
+          </svg>
+          <div className="score-text">
+            <span className="score-number">{score}</span>
+            <span className="score-total">/10</span>
+          </div>
         </div>
+        <div className="score-label">Cosmic Energy</div>
       </div>
     );
   };
 
   return (
-    <div className="container">
+    <div className="panchangam-app">
       <Head>
-        <title>TamilJyotish Daily Panchangam</title>
+        <title>Tamil Panchangam - Daily Vedic Calendar</title>
         <meta
           name="description"
           content="Daily panchangam information for auspicious timing"
         />
         <link rel="icon" href="/favicon.ico" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </Head>
 
-      <header className="header">
-        <div className="header-content">
-          <h1>✨ விஸ்வாவசு தமிழ் பஞ்சாங்கம் ✨</h1>
+      {/* Hero Header */}
+      <div className="hero-header">
+        <div className="hero-bg"></div>
+        <div className="hero-content">
+          <h1 className="app-title">
+            <span className="title-icon">🕉️</span>
+            Tamil Panchangam
+            <span className="title-subtitle">Daily Vedic Calendar</span>
+          </h1>
 
-          <div className="date-controls">
-            <div className="date-selector">
+          {/* Date Navigator */}
+          <div className="date-navigator">
+            <button onClick={goToPreviousDay} className="date-nav-btn prev">
+              <span>←</span>
+            </button>
+
+            <div className="date-center">
               <input
                 type="date"
                 value={formatDate(selectedDate)}
                 onChange={handleDateChange}
+                className="date-input"
               />
+              <div className="selected-date">
+                <div className="date-main">
+                  {selectedDate.toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "long",
+                  })}
+                </div>
+                <div className="date-year">
+                  {selectedDate.getFullYear()} •{" "}
+                  {selectedDate.toLocaleDateString("en-IN", {
+                    weekday: "long",
+                  })}
+                </div>
+              </div>
             </div>
 
+            <button onClick={goToNextDay} className="date-nav-btn next">
+              <span>→</span>
+            </button>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="quick-actions">
+            <button onClick={goToToday} className="action-btn today">
+              <span>📅</span>
+              Today
+            </button>
             <button
               onClick={speakContent}
-              className={`speak-button ${isVoicePlaying ? "playing" : ""}`}
+              className={`action-btn voice ${isVoicePlaying ? "playing" : ""}`}
               disabled={loading || !panchangamData}
             >
-              <span className="speak-icon" role="img" aria-hidden="true">
-                {isVoicePlaying ? "⏹️" : "🔊"}
-              </span>
-              <span className="speak-text">
-                {isVoicePlaying
-                  ? "நிறுத்து (Stop)"
-                  : "தமிழில் வாசிக்க (Read in Tamil)"}
-              </span>
+              <span>{isVoicePlaying ? "⏹️" : "🔊"}</span>
+              {isVoicePlaying ? "Stop" : "Listen"}
             </button>
           </div>
         </div>
-      </header>
+      </div>
 
-      <main>
+      {/* Main Content */}
+      <div className="main-container">
         {loading ? (
-          <div className="loading-container">
-            <div className="loading-spinner"></div>
-            <p>பஞ்சாங்க தகவல்களைப் பெறுகிறது...</p>
+          <div className="loading-state">
+            <div className="loading-animation">
+              <div className="loading-circle"></div>
+              <div className="loading-circle"></div>
+              <div className="loading-circle"></div>
+            </div>
+            <h3>Loading Panchangam...</h3>
+            <p>பஞ்சாங்க தகவல்களைப் பெறுகிறது</p>
           </div>
         ) : !panchangamData ? (
-          <div className="no-data">
-            <div className="no-data-icon">📅</div>
+          <div className="no-data-state">
+            <div className="no-data-icon">🗓️</div>
+            <h3>No Data Available</h3>
             <p>இந்த தேதிக்கான பஞ்சாங்க தகவல் இல்லை</p>
-            <p>No data available for this date</p>
           </div>
         ) : (
-          <div className="main-content">
-            {/* RS Nakshatra Warning Section */}
+          <div className="content-grid">
+            {/* RS Nakshatra Alert */}
             {rsNakshatraInfo && (
-              <div className="card rs-nakshatra-warning">
-                <div className="warning-header">
-                  <div className="warning-icon-container">
-                    <span
-                      role="img"
-                      aria-label="Warning"
-                      className="warning-icon"
-                    >
-                      ⚠️
-                    </span>
-                  </div>
-                  <h3>தீதுரு நட்சத்திர எச்சரிக்கை</h3>
+              <div className="alert-card rs-warning">
+                <div className="alert-icon">
+                  <span className="warning-symbol">⚠️</span>
                 </div>
-                <p className="warning-text">
-                  இன்று{" "}
-                  <strong className="highlight">
-                    {rsNakshatraInfo.nakshatra_name_tamil ||
-                      rsNakshatraInfo.nakshatra_name}
-                  </strong>{" "}
-                  நட்சத்திரம் தீதுரு நட்சத்திரமாக கருதப்படுகிறது.
-                </p>
-                <div className="warning-items">
-                  {rsNakshatraInfo.avoid_medical && (
-                    <div className="warning-item">
-                      <div className="warning-item-icon">
-                        <span role="img" aria-label="Medical">
-                          💊
-                        </span>
-                      </div>
-                      <span className="warning-item-text">
-                        மருத்துவ சிகிச்சை அல்லது புதிய மருந்துகள் தொடங்குவதை
-                        தவிர்க்கவும்
-                      </span>
-                    </div>
-                  )}
-
-                  {rsNakshatraInfo.avoid_travel && (
-                    <div className="warning-item">
-                      <div className="warning-item-icon">
-                        <span role="img" aria-label="Travel">
-                          ✈️
-                        </span>
-                      </div>
-                      <span className="warning-item-text">
-                        பயணம் மேற்கொள்வதை தவிர்க்கவும்
-                      </span>
-                    </div>
-                  )}
-
-                  {rsNakshatraInfo.avoid_financial && (
-                    <div className="warning-item">
-                      <div className="warning-item-icon">
-                        <span role="img" aria-label="Financial">
-                          💰
-                        </span>
-                      </div>
-                      <span className="warning-item-text">
-                        கடன் வாங்குதல் அல்லது கொடுத்தல் போன்ற பண பரிவர்த்தனைகளை
-                        தவிர்க்கவும்
-                      </span>
-                    </div>
-                  )}
+                <div className="alert-content">
+                  <h3>RS Nakshatra Alert</h3>
+                  <p className="alert-subtitle">தீதுரு நட்சத்திர எச்சரிக்கை</p>
+                  <div className="alert-message">
+                    Today's nakshatra{" "}
+                    <strong>
+                      {rsNakshatraInfo.nakshatra_name_tamil ||
+                        rsNakshatraInfo.nakshatra_name}
+                    </strong>{" "}
+                    is considered inauspicious.
+                  </div>
+                  <div className="warning-tags">
+                    <span className="warning-tag">💊 Avoid Medical</span>
+                    <span className="warning-tag">✈️ No Travel</span>
+                    <span className="warning-tag">💰 No Finance</span>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Basic date and day */}
-            <div className="card primary-info">
-              <div className="info-grid">
-                <div className="info-item">
-                  <div className="info-icon">📅</div>
-                  <div className="info-content">
-                    <div className="info-label">Date</div>
-                    <div className="info-value">
-                      {new Date(panchangamData.date).toLocaleDateString([], {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </div>
+            {/* Today's Overview */}
+            <div className="overview-card">
+              <div className="card-header">
+                <h2>Today's Overview</h2>
+                <span className="header-icon">📊</span>
+              </div>
+              <div className="overview-content">
+                <div className="overview-item primary">
+                  <div className="item-label">Date</div>
+                  <div className="item-value">
+                    {new Date(panchangamData.date).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
                   </div>
                 </div>
-
-                <div className="info-item">
-                  <div className="info-icon">📆</div>
-                  <div className="info-content">
-                    <div className="info-label">Day</div>
-                    <div className="info-value">
-                      {panchangamData.vaara ||
-                        new Date(panchangamData.date).toLocaleDateString([], {
-                          weekday: "long",
-                        })}
-                    </div>
+                <div className="overview-item">
+                  <div className="item-label">Day</div>
+                  <div className="item-value">
+                    {panchangamData.vaara ||
+                      new Date(panchangamData.date).toLocaleDateString(
+                        "en-IN",
+                        { weekday: "long" },
+                      )}
+                  </div>
+                </div>
+                <div className="overview-item special">
+                  <div className="item-label">Special Day</div>
+                  <div className="item-value">
+                    {getSpecialDay(panchangamData)}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Nakshatra & Yogam */}
-            <div className="card">
-              <h3 className="card-title">
-                நட்சத்திர தகவல்கள்{" "}
-                <span className="subtitle">(Star Information)</span>
-              </h3>
-              <div className="info-grid">
-                <div className="info-item">
-                  <div className="info-icon">🌟</div>
-                  <div className="info-content">
-                    <div className="info-label">Main Nakshatra</div>
-                    <div className="info-value nakshatra-value">
-                      {panchangamData.main_nakshatra || "N/A"}
-                      {rsNakshatraInfo && <span className="rs-badge">RS</span>}
-                    </div>
+            {/* Nakshatra Card */}
+            <div className="feature-card nakshatra">
+              <div className="card-header">
+                <h2>Nakshatra</h2>
+                <span className="header-icon">⭐</span>
+              </div>
+              <div className="feature-content">
+                <div className="main-nakshatra">
+                  <div className="nakshatra-name">
+                    {panchangamData.main_nakshatra || "N/A"}
+                    {rsNakshatraInfo && (
+                      <span className="rs-indicator">RS</span>
+                    )}
                   </div>
-                </div>
-
-                <div className="info-item">
-                  <div className="info-icon">🔮</div>
-                  <div className="info-content">
-                    <div className="info-label">Nakshatra Yogam</div>
-                    <div className="info-value">
-                      {panchangamData.nakshatra_yogam || "N/A"}
-                    </div>
+                  <div className="nakshatra-yogam">
+                    {panchangamData.nakshatra_yogam || "N/A"}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Tithi, Yogam, Karanam */}
-            <div className="card">
-              <h3 className="card-title">
-                திதி & யோகம் <span className="subtitle">(Tithi & Yogam)</span>
-              </h3>
-
-              <div className="info-item tithi-section">
-                <div className="info-icon">🌓</div>
-                <div className="info-content full-width">
-                  <div className="info-label">Tithi</div>
-                  <div className="info-value">
-                    {formatTithiData(panchangamData.tithi)}
-                  </div>
-                  {(panchangamData.is_valar_pirai ||
-                    panchangamData.is_thei_pirai) && (
-                    <MoonPhaseIndicator
-                      isValarPirai={panchangamData.is_valar_pirai}
-                      isTheiPirai={panchangamData.is_thei_pirai}
-                    />
-                  )}
-                </div>
+            {/* Tithi & Moon Phase */}
+            <div className="feature-card tithi">
+              <div className="card-header">
+                <h2>Tithi</h2>
+                <span className="header-icon">🌙</span>
               </div>
-
-              <div className="info-grid">
-                <div className="info-item">
-                  <div className="info-icon">✨</div>
-                  <div className="info-content">
-                    <div className="info-label">Yogam</div>
-                    <div className="info-value">
-                      {(panchangamData.yoga &&
-                        getFirstItem(panchangamData.yoga)?.name) ||
-                        "N/A"}
-                    </div>
+              <div className="feature-content">
+                {formatTithiData(panchangamData.tithi)}
+                {panchangamData.is_valar_pirai && (
+                  <div className="moon-phase waxing">
+                    <span className="moon-icon">🌔</span>
+                    <span>வளர்பிறை (Waxing Moon)</span>
                   </div>
-                </div>
-
-                <div className="info-item">
-                  <div className="info-icon">🌗</div>
-                  <div className="info-content">
-                    <div className="info-label">Karanam</div>
-                    <div className="info-value">
-                      {(panchangamData.karana &&
-                        getFirstItem(panchangamData.karana)?.name) ||
-                        "N/A"}
-                    </div>
+                )}
+                {panchangamData.is_thei_pirai && (
+                  <div className="moon-phase waning">
+                    <span className="moon-icon">🌖</span>
+                    <span>தேய்பிறை (Waning Moon)</span>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
-            {/* Sun/Moon times */}
-            <div className="card">
-              <h3 className="card-title">
-                சூரிய-சந்திர நேரங்கள்{" "}
-                <span className="subtitle">(Sun-Moon Times)</span>
-              </h3>
+            {/* Cosmic Score */}
+            <div className="feature-card cosmic">
+              <div className="card-header">
+                <h2>Cosmic Energy</h2>
+                <span className="header-icon">🌌</span>
+              </div>
+              <div className="feature-content cosmic-content">
+                {renderCosmicScore(panchangamData.cosmic_score)}
+              </div>
+            </div>
+
+            {/* Sun & Moon Times */}
+            <div className="times-card">
+              <div className="card-header">
+                <h2>Celestial Times</h2>
+                <span className="header-icon">🌅</span>
+              </div>
               <div className="times-grid">
-                <div className="time-item">
+                <div className="time-block sunrise">
                   <div className="time-icon">🌅</div>
-                  <div className="time-content">
+                  <div className="time-info">
                     <div className="time-label">Sunrise</div>
                     <div className="time-value">
                       {formatTime(panchangamData.sunrise)}
                     </div>
                   </div>
                 </div>
-
-                <div className="time-item">
+                <div className="time-block sunset">
                   <div className="time-icon">🌇</div>
-                  <div className="time-content">
+                  <div className="time-info">
                     <div className="time-label">Sunset</div>
                     <div className="time-value">
                       {formatTime(panchangamData.sunset)}
                     </div>
                   </div>
                 </div>
-
-                <div className="time-item">
+                <div className="time-block moonrise">
                   <div className="time-icon">🌕</div>
-                  <div className="time-content">
+                  <div className="time-info">
                     <div className="time-label">Moonrise</div>
                     <div className="time-value">
                       {formatTime(panchangamData.moonrise)}
                     </div>
                   </div>
                 </div>
-
-                <div className="time-item">
+                <div className="time-block moonset">
                   <div className="time-icon">🌑</div>
-                  <div className="time-content">
+                  <div className="time-info">
                     <div className="time-label">Moonset</div>
                     <div className="time-value">
                       {formatTime(panchangamData.moonset)}
@@ -848,846 +814,951 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Important times */}
-            <div className="card important-times">
-              <h3 className="card-title">
-                <span className="title-icon">⚠️</span>
-                முக்கியமான நேரங்கள்{" "}
-                <span className="subtitle">(Important Times)</span>
-              </h3>
-
-              <div className="info-grid">
-                <div className="info-item">
-                  <div className="info-icon">⏰</div>
-                  <div className="info-content">
-                    <div className="info-label">Rahu Kalam</div>
-                    <div className="info-value">
-                      {panchangamData.rahu_kalam || "N/A"}
-                    </div>
+            {/* Inauspicious Times */}
+            <div className="warning-times-card">
+              <div className="card-header">
+                <h2>Avoid These Times</h2>
+                <span className="header-icon">⚠️</span>
+              </div>
+              <div className="warning-times-grid">
+                <div className="warning-time">
+                  <div className="warning-time-label">Rahu Kalam</div>
+                  <div className="warning-time-value">
+                    {panchangamData.rahu_kalam || "N/A"}
                   </div>
                 </div>
-
-                <div className="info-item">
-                  <div className="info-icon">⏱️</div>
-                  <div className="info-content">
-                    <div className="info-label">Yamagandam</div>
-                    <div className="info-value">
-                      {panchangamData.yamagandam || "N/A"}
-                    </div>
+                <div className="warning-time">
+                  <div className="warning-time-label">Yamagandam</div>
+                  <div className="warning-time-value">
+                    {panchangamData.yamagandam || "N/A"}
                   </div>
                 </div>
-
-                <div className="info-item">
-                  <div className="info-icon">⏳</div>
-                  <div className="info-content">
-                    <div className="info-label">Kuligai</div>
-                    <div className="info-value">
-                      {panchangamData.kuligai || "N/A"}
-                    </div>
+                <div className="warning-time">
+                  <div className="warning-time-label">Kuligai</div>
+                  <div className="warning-time-value">
+                    {panchangamData.kuligai || "N/A"}
                   </div>
                 </div>
-
-                <div className="info-item">
-                  <div className="info-icon">✅</div>
-                  <div className="info-content">
-                    <div className="info-label">Abhijit Muhurta</div>
-                    <div className="info-value">
-                      {panchangamData.abhijit_muhurta || "N/A"}
-                    </div>
+                <div className="warning-time auspicious">
+                  <div className="warning-time-label">Abhijit Muhurta</div>
+                  <div className="warning-time-value">
+                    {panchangamData.abhijit_muhurta || "N/A"}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Special information */}
-            <div className="card special-info">
-              <h3 className="card-title">
-                சிறப்பு தகவல்கள்{" "}
-                <span className="subtitle">(Special Information)</span>
-              </h3>
-
-              <div className="info-grid">
-                <div className="info-item">
-                  <div className="info-icon">🎉</div>
-                  <div className="info-content">
-                    <div className="info-label">Special Day</div>
-                    <div className="info-value special-day">
-                      {getSpecialDay(panchangamData)}
-                    </div>
+            {/* Additional Info */}
+            <div className="additional-card">
+              <div className="card-header">
+                <h2>Additional Info</h2>
+                <span className="header-icon">ℹ️</span>
+              </div>
+              <div className="additional-content">
+                <div className="additional-item">
+                  <div className="item-label">Yoga</div>
+                  <div className="item-value">
+                    {(panchangamData.yoga &&
+                      getFirstItem(panchangamData.yoga)?.name) ||
+                      "N/A"}
                   </div>
                 </div>
-
+                <div className="additional-item">
+                  <div className="item-label">Karana</div>
+                  <div className="item-value">
+                    {(panchangamData.karana &&
+                      getFirstItem(panchangamData.karana)?.name) ||
+                      "N/A"}
+                  </div>
+                </div>
                 {panchangamData.chandrashtama_for && (
-                  <div className="info-item">
-                    <div className="info-icon">🔄</div>
-                    <div className="info-content">
-                      <div className="info-label">Chandrashtama for</div>
-                      <div className="info-value">
-                        {convertChandrashtamaToTamil(
-                          panchangamData.chandrashtama_for,
-                        )}
-                      </div>
+                  <div className="additional-item">
+                    <div className="item-label">Chandrashtama for</div>
+                    <div className="item-value">
+                      {convertChandrashtamaToTamil(
+                        panchangamData.chandrashtama_for,
+                      )}
                     </div>
                   </div>
                 )}
               </div>
-
-              <div className="cosmic-score-container">
-                <div className="cosmic-score-header">
-                  <div className="info-icon">🌿</div>
-                  <div className="info-label">Cosmic Score</div>
-                </div>
-                <div className="cosmic-score-value">
-                  {renderCosmicScore(panchangamData.cosmic_score)}
-                </div>
-              </div>
             </div>
           </div>
         )}
-      </main>
-
-      <footer className="footer">
-        <p> Creation {new Date().getFullYear()} Sivaraman Rajagopal</p>
-      </footer>
+      </div>
 
       <style jsx>{`
-        /* Basic styling */
-        :root {
-          --primary-color: #FF9800;
-          --primary-dark: #F57C00;
-          --primary-light: #FFE0B2;
-          --accent-color: #4f46e5;
-          --warning-color: #d32f2f;
-          --success-color: #22c55e;
-          --text-color: #333;
-          --text-secondary: #666;
-          --background-color: #f5f7fa;
-          --card-background: #ffffff;
-          --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-          --border-radius: 14px;
-          --card-border: 1px solid rgba(234, 234, 242, 0.6);
-          --special-gradient: linear-gradient(135deg, #FF9A9E 0%, #FAD0C4 100%);
-        }
-
         * {
-          box-sizing: border-box;
           margin: 0;
           padding: 0;
+          box-sizing: border-box;
         }
 
-        body {
-          background-color: var(--background-color);
-          color: var(--text-color);
-          line-height: 1.6;
+        .panchangam-app {
+          font-family:
+            "Inter",
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          color: #1a1a1a;
         }
 
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 20px;
-          font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-
-        /* Header Styles */
-        .header {
-          margin-bottom: 25px;
-          padding-bottom: 15px;
-          border-bottom: 1px solid rgba(0,0,0,0.05);
-        }
-
-        .header-content {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 15px;
-        }
-
-        h1 {
-          color: var(--primary-dark);
-          margin-bottom: 10px;
-          font-size: 1.6rem;
-          text-align: center;
-          font-weight: 700;
-          background: linear-gradient(90deg, #FF8E53 0%, #FE6B8B 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+        /* Hero Header */
+        .hero-header {
           position: relative;
-          line-height: 1.4;
-        }
-
-        h1::after {
-          content: "";
-          position: absolute;
-          bottom: -8px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 80px;
-          height: 3px;
-          background: linear-gradient(90deg, #FF8E53 0%, #FE6B8B 100%);
-          border-radius: 2px;
-        }
-
-        .date-controls {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-          width: 100%;
-        }
-
-        .date-selector {
-          width: 100%;
-          max-width: 240px;
-        }
-
-        .date-selector input {
-          padding: 12px 15px;
-          border: 1px solid rgba(0,0,0,0.1);
-          border-radius: 8px;
-          font-size: 16px;
-          width: 100%;
-          background-color: white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-          font-family: inherit;
-          transition: all 0.2s ease;
-        }
-
-        .date-selector input:focus {
-          outline: none;
-          border-color: var(--primary-color);
-          box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.2);
-        }
-
-        .speak-button {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 12px 20px;
-          color: white;
-          background: #1976D2;
-          linear-gradient(135deg, var(--accent-color), #1976D2;);
-          color: White;
-          border: none;
-          border-radius: 8px;
-          font-size: 16px;
-          font-weight: 700;
-          letter-spacing: 0.5px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          width: 100%;
-          max-width: 240px;
-          box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
-        }
-
-        .speak-button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
-        }
-
-        .speak-button:active {
-          transform: translateY(0);
-        }
-
-        .speak-button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .speak-button.playing {
-          background: linear-gradient(135deg, #f43f5e, #ec4899);
-          box-shadow: 0 2px 8px rgba(244, 63, 94, 0.3);
-          animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4);
-          }
-          70% {
-            box-shadow: 0 0 0 10px rgba(244, 63, 94, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
-          }
-        }
-
-        .speak-icon {
-          font-size: 18px;
-        }
-
-        /* Loading & No Data */
-        .loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          background: white;
-          border-radius: var(--border-radius);
-          padding: 40px 20px;
-          box-shadow: var(--card-shadow);
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          padding: 2rem 1rem 3rem;
           text-align: center;
-        }
-
-        .loading-spinner {
-          width: 40px;
-          height: 40px;
-          border: 3px solid rgba(255, 152, 0, 0.2);
-          border-top: 3px solid var(--primary-color);
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: 20px;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        .no-data {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          background: white;
-          border-radius: var(--border-radius);
-          padding: 40px 20px;
-          box-shadow: var(--card-shadow);
-          text-align: center;
-        }
-
-        .no-data-icon {
-          font-size: 48px;
-          margin-bottom: 16px;
-          opacity: 0.5;
-        }
-
-        .no-data p {
-          margin-bottom: 8px;
-          color: var(--text-secondary);
-        }
-
-        /* Main Content */
-        .main-content {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .card {
-          background: var(--card-background);
-          border-radius: var(--border-radius);
-          box-shadow: var(--card-shadow);
-          padding: 18px;
-          border: var(--card-border);
           overflow: hidden;
         }
 
-        .card-title {
-          font-size: 1.1rem;
-          color: var(--text-color);
-          margin-bottom: 16px;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          position: relative;
-          padding-bottom: 8px;
-        }
-
-        .card-title::after {
-          content: "";
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          width: 60px;
-          height: 2px;
-          background-color: var(--primary-color);
-          border-radius: 2px;
-        }
-
-        .title-icon {
-          font-size: 1.2rem;
-        }
-
-        .subtitle {
-          font-size: 0.85rem;
-          color: var(--text-secondary);
-          font-weight: 400;
-          margin-left: 5px;
-        }
-
-        /* Primary Info */
-.primary-info {
-  background: linear-gradient(135deg, #f8c84d 0%, #ff9966 100%); /* Brighter gold-to-orange gradient */
-  color: #fff;
-  position: relative;
-  overflow: hidden;
-  z-index: 1;
-}
-
-        .primary-info::before {
-          content: "";
+        .hero-bg {
           position: absolute;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(255, 255, 255, 0.12);
-          z-index: -1;
+          background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="1" fill="white" opacity="0.1"/><circle cx="80" cy="40" r="0.5" fill="white" opacity="0.1"/><circle cx="40" cy="80" r="1.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+          opacity: 0.3;
         }
 
-.primary-info .info-label {
-  color: #ffff00; /* Bright yellow for the "Date" and "Day" labels */
-  font-weight: 700;
-  font-size: 1rem;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-}
+        .hero-content {
+          position: relative;
+          z-index: 2;
+          max-width: 800px;
+          margin: 0 auto;
+        }
 
-.primary-info .info-value {
-  background-color: rgba(255, 255, 255, 0.15); /* Slightly more visible background */
-  border-radius: 8px;
-  padding: 8px 12px;
-  color: white;
-  font-weight: 700;
-  font-size: 1.25rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+        .app-title {
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: white;
+          margin-bottom: 0.5rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+        }
 
-        .primary-info .info-icon {
+        .title-icon {
+          font-size: 3rem;
+          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        .title-subtitle {
+          font-size: 1rem;
+          font-weight: 400;
+          opacity: 0.9;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+        }
+
+        /* Date Navigator */
+        .date-navigator {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 2rem;
+          margin: 2rem 0;
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(20px);
+          border-radius: 20px;
+          padding: 1.5rem;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .date-nav-btn {
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          color: white;
+          font-size: 1.5rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          backdrop-filter: blur(10px);
+        }
+
+        .date-nav-btn:hover {
+          background: rgba(255, 255, 255, 0.3);
+          transform: scale(1.1);
+        }
+
+        .date-center {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .date-input {
+          opacity: 0;
+          position: absolute;
+          pointer-events: none;
+        }
+
+        .selected-date {
+          text-align: center;
+          color: white;
+          cursor: pointer;
+          padding: 1rem;
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(10px);
+          transition: all 0.3s ease;
+          min-width: 200px;
+        }
+
+        .selected-date:hover {
           background: rgba(255, 255, 255, 0.2);
         }
 
-        /* Important Times */
-        .important-times {
-          border-left: 3px solid #fbbf24;
+        .date-main {
+          font-size: 1.5rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
         }
 
-        /* Special Info */
-        .special-info {
-          border-bottom: 3px solid var(--primary-color);
+        .date-year {
+          font-size: 0.9rem;
+          opacity: 0.8;
         }
 
-        .special-day {
-          font-weight: 500;
-        }
-
-        /* Info Grids */
-        .info-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-
-        .info-item {
+        /* Quick Actions */
+        .quick-actions {
           display: flex;
-          gap: 12px;
-          align-items: flex-start;
-        }
-
-        .info-item.full-width {
-          grid-column: span 2;
-        }
-
-        .info-icon {
-          display: flex;
-          align-items: center;
           justify-content: center;
-          min-width: 36px;
-          height: 36px;
-          background: rgba(0, 0, 0, 0.03);
-          border-radius: 50%;
-          font-size: 16px;
+          gap: 1rem;
         }
 
-        .info-content {
-          flex: 1;
-        }
-
-        .info-label {
-          font-size: 0.85rem;
-          color: var(--text-secondary);
-          margin-bottom: 2px;
-        }
-
-        .info-value {
-          font-weight: 500;
-        }
-
-.nakshatra-value {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #1e293b; /* Darker text color */
-}
-
-        /* Times Grid */
-        .times-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-
-        .time-item {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-
-        .time-icon {
+        .action-btn {
+          background: rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 12px;
+          padding: 0.75rem 1.5rem;
+          color: white;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
           display: flex;
           align-items: center;
-          justify-content: center;
-          min-width: 36px;
-          height: 36px;
-          background: rgba(0, 0, 0, 0.03);
-          border-radius: 50%;
-          font-size: 18px;
+          gap: 0.5rem;
+          font-size: 0.9rem;
         }
 
-        .time-content {
-          flex: 1;
+        .action-btn:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.25);
+          transform: translateY(-2px);
         }
 
-        .time-label {
-          font-size: 0.85rem;
-          color: var(--text-secondary);
+        .action-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
-        .time-value {
-          font-weight: 500;
+        .action-btn.playing {
+          background: rgba(239, 68, 68, 0.3);
+          animation: pulse 2s infinite;
         }
 
-        /* RS Nakshatra Warning */
-        .rs-nakshatra-warning {
-          background-color: #fff5f5;
-          border: none;
-          border-left: 4px solid var(--warning-color);
-          margin-bottom: 0;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .rs-nakshatra-warning::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: radial-gradient(circle at top right, rgba(253, 164, 175, 0.2), transparent 70%);
-          z-index: 0;
-        }
-
-        .warning-header {
-          display: flex;
-          align-items: center;
-          margin-bottom: 15px;
-          position: relative;
-          z-index: 1;
-        }
-
-        .warning-icon-container {
-          position: relative;
-        }
-
-        .warning-icon {
-          font-size: 24px;
-          margin-right: 12px;
-          position: relative;
-          animation: pulse-warning 2s infinite;
-        }
-
-        @keyframes pulse-warning {
-          0% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.1);
-          }
+        @keyframes pulse {
+          0%,
           100% {
             transform: scale(1);
           }
+          50% {
+            transform: scale(1.05);
+          }
         }
 
-        .warning-header h3 {
-          margin: 0;
-          color: var(--warning-color);
-          font-size: 18px;
-          font-weight: 600;
-        }
-
-        .warning-text {
-          margin-bottom: 16px;
+        /* Main Container */
+        .main-container {
+          max-width: 1400px;
+          margin: -2rem auto 0;
+          padding: 0 1rem 2rem;
           position: relative;
-          z-index: 1;
-          font-size: 15px;
+          z-index: 3;
         }
 
-        .highlight {
-          background-color: rgba(253, 164, 175, 0.2);
-          padding: 2px 5px;
-          border-radius: 4px;
+        /* Loading State */
+        .loading-state {
+          background: white;
+          border-radius: 20px;
+          padding: 4rem 2rem;
+          text-align: center;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
 
-        .warning-items {
+        .loading-animation {
           display: flex;
-          flex-direction: column;
-          gap: 12px;
-          position: relative;
-          z-index: 1;
-          background-color: rgba(255, 255, 255, 0.7);
-          border-radius: 8px;
-          padding: 12px;
-        }
-
-        .warning-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          padding: 8px 12px;
-          background-color: rgba(255, 255, 255, 0.8);
-          border-radius: 8px;
-          border-left: 2px solid var(--warning-color);
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        .warning-item-icon {
-          font-size: 18px;
-          min-width: 24px;
-          display: flex;
-          align-items: center;
           justify-content: center;
+          gap: 0.5rem;
+          margin-bottom: 2rem;
         }
 
-        .warning-item-text {
-          flex: 1;
-          font-size: 14px;
+        .loading-circle {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #667eea;
+          animation: loading-bounce 1.4s ease-in-out infinite both;
         }
 
-        /* RS Badge */
-.rs-badge {
-  background-color: #f44336; /* Brighter red */
-  color: white;
-  font-size: 11px;
-  padding: 3px 7px;
-  border-radius: 10px;
-  display: inline-block;
-  vertical-align: middle;
-  font-weight: bold;
-  box-shadow: 0 2px 6px rgba(244, 67, 54, 0.4);
-  margin-left: 8px;
-  letter-spacing: 0.5px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-}
-
-        /* Tithi Styles */
-        .tithi-section {
-          margin-bottom: 16px;
+        .loading-circle:nth-child(1) {
+          animation-delay: -0.32s;
+        }
+        .loading-circle:nth-child(2) {
+          animation-delay: -0.16s;
+        }
+        .loading-circle:nth-child(3) {
+          animation-delay: 0;
         }
 
-        .tithi-container {
+        @keyframes loading-bounce {
+          0%,
+          80%,
+          100% {
+            transform: scale(0);
+          }
+          40% {
+            transform: scale(1);
+          }
+        }
+
+        .loading-state h3 {
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+          color: #333;
+        }
+
+        .loading-state p {
+          color: #666;
+        }
+
+        /* No Data State */
+        .no-data-state {
+          background: white;
+          border-radius: 20px;
+          padding: 4rem 2rem;
+          text-align: center;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .no-data-icon {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+          opacity: 0.5;
+        }
+
+        .no-data-state h3 {
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+          color: #333;
+        }
+
+        .no-data-state p {
+          color: #666;
+        }
+
+        /* Content Grid */
+        .content-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 1.5rem;
+          margin-top: 2rem;
+        }
+
+        /* Card Base Styles */
+        .feature-card,
+        .overview-card,
+        .times-card,
+        .warning-times-card,
+        .additional-card {
+          background: white;
+          border-radius: 20px;
+          padding: 1.5rem;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+          transition: all 0.3s ease;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .feature-card:hover,
+        .overview-card:hover,
+        .times-card:hover,
+        .warning-times-card:hover,
+        .additional-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
           display: flex;
-          flex-direction: column;
-          gap: 10px;
-          width: 100%;
-        }
-
-        .tithi-item {
-          padding: 10px 14px;
-          background-color: rgba(0, 0, 0, 0.02);
-          border-radius: 8px;
-          border-left: 3px solid #9ca3af;
-          transition: all 0.2s ease;
-        }
-
-        .tithi-item:hover {
-          background-color: rgba(0, 0, 0, 0.03);
-          transform: translateX(2px);
-        }
-
-        .active-tithi {
-          border-left-color: var(--success-color);
-          background-color: rgba(34, 197, 94, 0.08);
-        }
-
-        .tithi-name {
-          display: flex;
-          align-items: center;
           justify-content: space-between;
-          margin-bottom: 4px;
+          align-items: center;
+          margin-bottom: 1.5rem;
+          padding-bottom: 1rem;
+          border-bottom: 2px solid #f0f0f0;
         }
 
-        .tithi-name-content {
+        .card-header h2 {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .header-icon {
+          font-size: 1.5rem;
+          opacity: 0.7;
+        }
+
+        /* Alert Card */
+        .alert-card {
+          grid-column: 1 / -1;
+          background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+          color: white;
+          border-radius: 20px;
+          padding: 2rem;
           display: flex;
           align-items: center;
+          gap: 1.5rem;
+          box-shadow: 0 15px 35px rgba(255, 107, 107, 0.3);
+          border: none;
         }
 
-        .tithi-main-name {
+        .alert-icon {
+          flex-shrink: 0;
+        }
+
+        .warning-symbol {
+          font-size: 3rem;
+          animation: shake 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes shake {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(5px);
+          }
+        }
+
+        .alert-content h3 {
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+          font-weight: 700;
+        }
+
+        .alert-subtitle {
+          opacity: 0.9;
+          margin-bottom: 1rem;
+          font-size: 0.9rem;
+        }
+
+        .alert-message {
+          margin-bottom: 1.5rem;
+          line-height: 1.5;
+        }
+
+        .warning-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.75rem;
+        }
+
+        .warning-tag {
+          background: rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(10px);
+          padding: 0.5rem 1rem;
+          border-radius: 25px;
+          font-size: 0.85rem;
+          font-weight: 500;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Overview Card */
+        .overview-card {
+          grid-column: 1 / -1;
+          background: linear-gradient(135deg, #667eea, #764ba2);
+          color: white;
+        }
+
+        .overview-card .card-header {
+          border-bottom-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .overview-card .card-header h2,
+        .overview-card .header-icon {
+          color: white;
+        }
+
+        .overview-content {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .overview-item {
+          background: rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(10px);
+          border-radius: 12px;
+          padding: 1.5rem;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .overview-item.primary {
+          background: rgba(255, 255, 255, 0.25);
+        }
+
+        .overview-item.special {
+          background: linear-gradient(
+            135deg,
+            rgba(16, 185, 129, 0.3),
+            rgba(5, 150, 105, 0.3)
+          );
+        }
+
+        .item-label {
+          font-size: 0.85rem;
+          opacity: 0.8;
+          margin-bottom: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: 1px;
           font-weight: 500;
         }
 
-        .tithi-paksha {
-          font-weight: normal;
-          color: var(--text-secondary);
-          margin-left: 6px;
-          font-size: 0.9em;
+        .item-value {
+          font-size: 1.1rem;
+          font-weight: 600;
         }
 
-        .active-badge {
-          background-color: var(--success-color);
+        /* Nakshatra Card */
+        .feature-card.nakshatra {
+          background: linear-gradient(135deg, #ffecd2, #fcb69f);
+        }
+
+        .main-nakshatra {
+          text-align: center;
+        }
+
+        .nakshatra-name {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #d63031;
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+        }
+
+        .rs-indicator {
+          background: #d63031;
           color: white;
-          font-size: 10px;
-          padding: 2px 6px;
-          border-radius: 10px;
-          display: inline-block;
-          font-weight: bold;
-          box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+          font-size: 0.7rem;
+          padding: 0.3rem 0.6rem;
+          border-radius: 20px;
+          font-weight: 700;
+          letter-spacing: 1px;
         }
 
-        .tithi-time {
+        .nakshatra-yogam {
+          font-size: 1rem;
+          color: #636e72;
+          font-weight: 500;
+        }
+
+        /* Tithi Card */
+        .feature-card.tithi {
+          background: linear-gradient(135deg, #a8edea, #fed6e3);
+        }
+
+        .tithi-timeline {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .tithi-block {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1rem;
+          background: rgba(255, 255, 255, 0.6);
+          border-radius: 12px;
+          transition: all 0.3s ease;
+        }
+
+        .tithi-block.current {
+          background: rgba(16, 185, 129, 0.2);
+          border-left: 4px solid #10b981;
+        }
+
+        .tithi-indicator {
+          position: relative;
+          flex-shrink: 0;
+        }
+
+        .tithi-dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #ddd;
+          transition: all 0.3s ease;
+        }
+
+        .tithi-dot.active {
+          background: #10b981;
+          box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .pulse-ring {
+          position: absolute;
+          top: -6px;
+          left: -6px;
+          width: 24px;
+          height: 24px;
+          border: 2px solid #10b981;
+          border-radius: 50%;
+          animation: pulse-ring 2s ease-out infinite;
+        }
+
+        @keyframes pulse-ring {
+          0% {
+            transform: scale(0.8);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(2);
+            opacity: 0;
+          }
+        }
+
+        .tithi-info {
+          flex-grow: 1;
+        }
+
+        .tithi-header {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .tithi-name {
+          font-weight: 600;
+          color: #2d3436;
+        }
+
+        .current-badge {
+          background: #10b981;
+          color: white;
+          font-size: 0.7rem;
+          padding: 0.25rem 0.5rem;
+          border-radius: 10px;
+          font-weight: 600;
+        }
+
+        .tithi-details {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
           font-size: 0.85rem;
-          color: var(--text-secondary);
+          color: #636e72;
+        }
+
+        .paksha {
+          font-weight: 500;
+        }
+
+        .timing {
+          font-weight: 400;
         }
 
         /* Moon Phase */
         .moon-phase {
           display: flex;
           align-items: center;
-          padding: 8px 12px;
-          margin-top: 10px;
-          background-color: rgba(0, 0, 0, 0.03);
-          border-radius: 8px;
-          gap: 10px;
-          width: fit-content;
+          gap: 1rem;
+          padding: 1rem;
+          margin-top: 1rem;
+          background: rgba(255, 255, 255, 0.6);
+          border-radius: 12px;
+          font-weight: 600;
+        }
+
+        .moon-phase.waxing {
+          color: #00b894;
+        }
+
+        .moon-phase.waning {
+          color: #e17055;
         }
 
         .moon-icon {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          position: relative;
-          overflow: hidden;
+          font-size: 1.5rem;
         }
 
-        .waxing-moon {
-          background: linear-gradient(90deg, #f8fafc 0%, #f8fafc 50%, #94a3b8 50%, #94a3b8 100%);
+        /* Cosmic Card */
+        .feature-card.cosmic {
+          background: linear-gradient(135deg, #667eea, #764ba2);
+          color: white;
         }
 
-        .waning-moon {
-          background: linear-gradient(270deg, #f8fafc 0%, #f8fafc 50%, #94a3b8 50%, #94a3b8 100%);
-        }
-
-        .valar-pirai .moon-icon {
-          box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.3);
-        }
-
-        .thei-pirai .moon-icon {
-          box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3);
-        }
-
-        .moon-text {
-          font-size: 14px;
-          font-weight: 500;
-        }
-
-        .valar-pirai .moon-text {
-          color: var(--success-color);
-        }
-
-        .thei-pirai .moon-text {
-          color: var(--warning-color);
-        }
-
-        /* Cosmic Score */
-        .cosmic-score-container {
-          margin-top: 20px;
-          padding-top: 18px;
-          border-top: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .cosmic-score-header {
+        .cosmic-content {
           display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 10px;
+          justify-content: center;
         }
 
-        .cosmic-score-display {
+        .cosmic-score {
           display: flex;
           flex-direction: column;
-          gap: 8px;
-          padding: 12px;
-          background: rgba(0, 0, 0, 0.02);
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .score-circle {
+          position: relative;
+          width: 120px;
+          height: 120px;
+        }
+
+        .score-ring {
+          transform: rotate(-90deg);
+        }
+
+        .score-progress {
+          transition: stroke-dasharray 2s ease-out;
+        }
+
+        .score-text {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          text-align: center;
+        }
+
+        .score-number {
+          font-size: 2rem;
+          font-weight: 700;
+          display: block;
+        }
+
+        .score-total {
+          font-size: 1rem;
+          opacity: 0.7;
+        }
+
+        .score-label {
+          font-weight: 600;
+          text-align: center;
+          opacity: 0.9;
+        }
+
+        .score-na {
+          font-size: 1.2rem;
+          color: #666;
+        }
+
+        /* Times Card */
+        .times-card {
+          grid-column: span 2;
+        }
+
+        .times-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 1rem;
+        }
+
+        .time-block {
+          background: linear-gradient(135deg, #ffecd2, #fcb69f);
+          border-radius: 12px;
+          padding: 1.5rem;
+          text-align: center;
+          transition: all 0.3s ease;
+        }
+
+        .time-block:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .time-block.sunrise {
+          background: linear-gradient(135deg, #fd79a8, #fdcb6e);
+        }
+        .time-block.sunset {
+          background: linear-gradient(135deg, #e17055, #fdcb6e);
+        }
+        .time-block.moonrise {
+          background: linear-gradient(135deg, #74b9ff, #0984e3);
+        }
+        .time-block.moonset {
+          background: linear-gradient(135deg, #636e72, #2d3436);
+          color: white;
+        }
+
+        .time-icon {
+          font-size: 2rem;
+          margin-bottom: 0.5rem;
+          display: block;
+        }
+
+        .time-label {
+          font-size: 0.8rem;
+          font-weight: 500;
+          margin-bottom: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          opacity: 0.8;
+        }
+
+        .time-value {
+          font-size: 1.1rem;
+          font-weight: 700;
+        }
+
+        /* Warning Times Card */
+        .warning-times-card {
+          grid-column: span 2;
+          background: linear-gradient(135deg, #fab1a0, #e17055);
+          color: white;
+        }
+
+        .warning-times-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+        }
+
+        .warning-time {
+          background: rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(10px);
+          border-radius: 12px;
+          padding: 1.5rem;
+          text-align: center;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .warning-time.auspicious {
+          background: rgba(16, 185, 129, 0.3);
+          border-color: rgba(16, 185, 129, 0.5);
+        }
+
+        .warning-time-label {
+          font-size: 0.8rem;
+          font-weight: 500;
+          margin-bottom: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          opacity: 0.9;
+        }
+
+        .warning-time-value {
+          font-size: 1.1rem;
+          font-weight: 700;
+        }
+
+        /* Additional Card */
+        .additional-content {
+          display: grid;
+          gap: 1rem;
+        }
+
+        .additional-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1rem;
+          background: #f8f9fa;
           border-radius: 8px;
         }
 
-        .cosmic-score-number {
-          font-size: 1.8rem;
+        .additional-item .item-label {
+          font-weight: 500;
+          color: #666;
+        }
+
+        .additional-item .item-value {
           font-weight: 600;
-          text-align: center;
-          margin-bottom: 5px;
+          color: #333;
         }
 
-        .cosmic-score-bar {
-          height: 8px;
-          background-color: rgba(0, 0, 0, 0.05);
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .cosmic-score-fill {
-          height: 100%;
-          border-radius: 4px;
-          transition: width 1s ease-out;
-        }
-
-        /* Footer */
-        .footer {
-          text-align: center;
-          margin-top: 30px;
-          padding-top: 20px;
-          font-size: 14px;
-          color: var(--text-secondary);
-          border-top: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        /* Media Queries */
-        @media (max-width: 500px) {
-          .container {
-            padding: 15px 10px;
+        /* Responsive Design */
+        @media (max-width: 768px) {
+          .app-title {
+            font-size: 2rem;
           }
 
-          .info-grid, .times-grid {
+          .date-navigator {
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+          }
+
+          .quick-actions {
+            flex-direction: column;
+            align-items: center;
+          }
+
+          .content-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+
+          .times-card,
+          .warning-times-card {
+            grid-column: span 1;
+          }
+
+          .times-grid,
+          .warning-times-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .overview-content {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .hero-header {
+            padding: 1.5rem 0.5rem 2rem;
+          }
+
+          .app-title {
+            font-size: 1.5rem;
+          }
+
+          .title-icon {
+            font-size: 2rem;
+          }
+
+          .main-container {
+            padding: 0 0.5rem 1rem;
+          }
+
+          .times-grid,
+          .warning-times-grid {
             grid-template-columns: 1fr;
           }
 
-          .card {
-            padding: 16px;
+          .alert-card {
+            flex-direction: column;
+            text-align: center;
           }
 
-          h1 {
-            font-size: 1.4rem;
-          }
-
-          .card-title {
-            font-size: 1rem;
-          }
-
-          .info-icon, .time-icon {
-            min-width: 32px;
-            height: 32px;
-          }
-
-          .speak-button {
-            padding: 10px 15px;
-          }
-
-          .cosmic-score-number {
-            font-size: 1.5rem;
+          .warning-tags {
+            justify-content: center;
           }
         }
       `}</style>
